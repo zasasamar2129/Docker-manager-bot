@@ -43,6 +43,19 @@ Welcome to **Telegram Bot Manager**! This Telegram bot helps you manage Docker c
     python bot.py
     ```
 
+
+---
+
+### 🚀 Docker Deployment
+
+```bash
+docker build -t musicfa .
+docker run musicfa
+```
+
+---
+
+
 ## 📜 Commands
 
 ### General Commands
