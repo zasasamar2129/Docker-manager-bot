@@ -26,6 +26,13 @@ from aiohttp import ClientSession
 from dotenv import load_dotenv
 import shutil 
 
+#Enviroment Variables
+api_id = "YOUR_API_ID"
+api_hash = "YOUR_API_HASH"
+bot_token = "YOUR_BOT_TOKEN"
+LOG_GROUP_ID = -123456789  # Replace with your Telegram log group ID
+OWNER_ID = YOUR_OWNER_ID  # Replace with your Telegram user ID
+
 # Log
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(message)s",
@@ -45,12 +52,6 @@ class BotManagerClient(Client):
         # Send the startup message to the log group
         await send_startup_message()
 
-# Initialize the bot
-api_id = "29356703"
-api_hash = "e701fd9416e0108d47b1041b27e74697"
-bot_token = "7688318906:AAF2wCe6hE4Dp5yIDh0WU6rQxYvSDtI0tHQ"
-LOG_GROUP_ID = -1001961244146  # Replace with your Telegram log group ID
-OWNER_ID = 5337964165  # Replace with your Telegram user ID
 
 app = BotManagerClient("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
