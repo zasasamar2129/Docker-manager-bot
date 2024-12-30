@@ -48,7 +48,7 @@ class BotManagerClient(Client):
 # Initialize the bot
 api_id = "29356703"
 api_hash = "e701fd9416e0108d47b1041b27e74697"
-bot_token = "7688318906:AAF2wCe6hE4Dp5yIDh0WU6rQxYvSDtI0tHQ"
+bot_token = "7762068154:AAGwVtVsxm5hLRiwzdHxjE6ri-qXiRXL_yo"
 LOG_GROUP_ID = -1001961244146  # Replace with your Telegram log group ID
 OWNER_ID = 5337964165  # Replace with your Telegram user ID
 
