@@ -10,14 +10,49 @@ from pyrogram import Client, filters
 from pyrogram.raw.functions import Ping
 from spotipy.oauth2 import SpotifyClientCredentials
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InputMediaPhoto
+from pyrogram import Client
+from os import environ,sys,mkdir,path
+import logging
+import requests
+from flask import Flask
+from threading import Thread
+import pytz
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
+from sys import executable
+#from Python_ARQ import ARQ
+from aiohttp import ClientSession
+from dotenv import load_dotenv
+import shutil 
+
+# Log
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(message)s",
+    handlers = [logging.FileHandler('bot.log'), logging.StreamHandler()]
+)
+logging.getLogger("pyrogram").setLevel(logging.WARNING)
+LOGGER = logging.getLogger(__name__)
+
+
+class BotManagerClient(Client):
+    async def start(self):
+        global BOT_INFO
+        await super().start()
+        BOT_INFO = await self.get_me()
+        LOGGER.info(f"Bot Started As {BOT_INFO.username}\n")
+        
+        # Send the startup message to the log group
+        await send_startup_message()
 
 # Initialize the bot
-api_id = "YOUR_API_ID"
-api_hash = "YOUR_API_HASH"
-bot_token = "YOUR_BOT_TOKEN"
-OWNER_ID = YOUR_OWNER_ID  # Replace with your Telegram user ID
+api_id = "29356703"
+api_hash = "e701fd9416e0108d47b1041b27e74697"
+bot_token = "7688318906:AAF2wCe6hE4Dp5yIDh0WU6rQxYvSDtI0tHQ"
+LOG_GROUP_ID = -1001961244146  # Replace with your Telegram log group ID
+OWNER_ID = 5337964165  # Replace with your Telegram user ID
 
-app = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
+app = BotManagerClient("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
 # Define sudo users
 SUDO_USERS_FILE = "sudo_users.json"
@@ -33,6 +68,8 @@ def save_sudo_users(sudo_users):
         json.dump(sudo_users, f)
 
 SUDO_USERS = load_sudo_users()
+
+
 
 # Bot Stats
 @app.on_message(filters.command("cpu") & filters.user(SUDO_USERS))
@@ -201,9 +238,12 @@ async def start(client, message):
         [InlineKeyboardButton("🐳 Docker", callback_data="docker_commands")],
         [InlineKeyboardButton("🔑 Sudo", callback_data="sudo_commands")],
         [InlineKeyboardButton("📦 Repo", url="https://github.com/your-repo-link")],
-        [InlineKeyboardButton("💖 Donate", url="https://www.buymeacoffee.com/your-link")],
-        [InlineKeyboardButton("📢 Bot Channel", url="https://t.me/your-channel-link")],
-        [InlineKeyboardButton("❌ Close", callback_data="close")]
+        [InlineKeyboardButton("💖 Donate", url="https://www.buymeacoffee.com/zasasamar")],
+        [InlineKeyboardButton("📢 Bot Channel", url="https://t.me/Zpotify1")
+        ],
+        [
+            InlineKeyboardButton("❌", callback_data="close")
+        ]
     ])
     await message.reply_text(
         "👋 Hello! I am your Bot Manager.\n"
@@ -318,5 +358,126 @@ async def on_sudo_commands_callback(client, callback_query):
 async def on_close_callback(client, callback_query):
     await callback_query.message.delete()
 
+######################################SHUTDOWN################################
+@app.on_message(filters.command("shutdown") & filters.chat(OWNER_ID) & filters.private)
+async def shutdown(_, message):
+    await message.delete()
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🟢 Yes", callback_data="shutdown_yes"),
+            InlineKeyboardButton("🔴 No", callback_data="shutdown_no")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await message.reply_text("( •᷄ᴗ•́) Are you sure you want to shut down the bot?", reply_markup=reply_markup)
+
+@app.on_callback_query(filters.regex(r"shutdown_(yes|no)"))
+async def handle_shutdown_query(_, callback_query):
+    if callback_query.data == "shutdown_yes":
+        await callback_query.message.delete()
+        await callback_query.answer("🔌Shutting down bot...", show_alert=True)
+
+        # Shutdown the bot by stopping the event loop
+        await os._exit(0)
+
+    
+
+    elif callback_query.data == "shutdown_no":
+        await callback_query.answer("Bot shutdown has been cancelled.", show_alert=True)
+        await callback_query.message.delete()
+
+############################RESTART######################################
+@app.on_message(filters.command("restart") & filters.chat(OWNER_ID) & filters.private)
+async def restart(_, message):
+    await message.delete()
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🟢 Yes", callback_data="restart_yes"),
+            InlineKeyboardButton("🔴 No", callback_data="restart_no")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await message.delete()
+    await message.reply_text("( •᷄ᴗ•́) Are you sure you want to restart the bot?", reply_markup=reply_markup)
+
+@app.on_callback_query(filters.regex(r"restart_(yes|no)"))
+async def handle_restart_query(_, callback_query):
+    if callback_query.data == "restart_yes":
+        await callback_query.message.delete()
+        await callback_query.answer("Restarting bot...", show_alert=True)
+        
+        execvp(sys.executable, [sys.executable,  "zaco.py"])
+    elif callback_query.data == "restart_no":
+        await callback_query.answer("Bot restart has been cancelled.", show_alert=True)
+        await callback_query.message.delete()
+
+
+
+# Bot Log Retrieval Command
+LOG_FILE = "bot_logs.log"
+
+@app.on_message(filters.command("logs") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def get_logs(_, message):
+    await message.delete()
+    try:
+        if os.path.exists(LOG_FILE):
+            await app.send_document(
+                LOG_GROUP_ID,
+                LOG_FILE,
+                caption="📜 **Bot Logs** 📜\nHere are the latest logs."
+            )
+        else:
+            await message.reply_text("⛔ Log file not found.")
+    except Exception as e:
+        await message.reply_text(f"⛔ Failed to retrieve logs: {e}")
+
+
+
+# Logging Setup
+import logging
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logging.info("Bot started.")
+
+# Example: Log an event
+@app.on_message(filters.command("example") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def example_command(_, message):
+    await message.reply_text("This is an example command.")
+    logging.info(f"Example command used by {message.from_user.id}")
+
+# Ensure the assets folder and image path are correctly defined
+ASSETS_FOLDER = "assets"
+STARTUP_IMAGE = os.path.join(ASSETS_FOLDER, "startup.jpg")
+
+# Function to send a startup message with an image to the log group
+async def send_startup_message():
+    if os.path.exists(STARTUP_IMAGE):
+        await app.send_photo(
+            chat_id=LOG_GROUP_ID,
+            photo=STARTUP_IMAGE,
+            caption="📣 **Bot Manager Started!**\nThe bot is now online and operational. 🚀",
+        )
+    else:
+        await app.send_message(
+            chat_id=LOG_GROUP_ID,
+            text="📣 **Bot Manager Started!**\nThe bot is now online and operational. 🚀\n\n⚠️ Startup image not found in assets folder.",
+        )
+
+# Override the `start` method to include the startup message feature
+async def start(self):
+    global BOT_INFO
+    await super().start()
+    BOT_INFO = await self.get_me()
+    LOGGER.info(f"Bot Started As {BOT_INFO.username}\n")
+    
+    # Send the startup message to the log group
+    await send_startup_message()
+
+# Assign the updated start method to the app instance
 # Start the bot
 app.run()
