@@ -21,8 +21,8 @@ Welcome to **Telegram Bot Manager**! This Telegram bot helps you manage Docker c
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-repo-link.git
-    cd your-repo-link
+    git clone https://github.com/zasasamar2129/Server-Bot-Manager.git
+    cd Server-Bot-Manager
     ```
 
 2. Install the required Python packages:
