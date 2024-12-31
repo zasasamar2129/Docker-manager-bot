@@ -18,15 +18,18 @@ from aiohttp import ClientSession
 from pyrogram import Client, filters
 from os import environ,sys,mkdir,path
 from pyrogram.raw.functions import Ping
-import requestsfrom sys import executable
+import requests
+from sys import executable
 from pyrogram.types import InputMediaPhoto
 from spotipy.oauth2 import SpotifyClientCredentials
 from apscheduler.schedulers.background import BackgroundScheduler
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
- 
+
 load_dotenv()
 client_credentials_manager = SpotifyClientCredentials()
+
 ############################################## Log ###################################
+
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(message)s",
     handlers = [logging.FileHandler('bot.log'), logging.StreamHandler()]
@@ -45,16 +48,18 @@ class BotManagerClient(Client):
         # Send the startup message to the log group
         await send_startup_message()
 
-######################################### Enviroment Variables ################################################
-api_id = "" # Api ID
-api_hash = "" # Api Hash
-bot_token = "" # Bot token from botfather
-LOG_GROUP_ID =   # Replace with your Telegram log group ID
-OWNER_ID =   # Replace with your Telegram user ID
+# Initialize the bot
+api_id = "29356703"
+api_hash = "e701fd9416e0108d47b1041b27e74697"
+bot_token = "7762068154:AAGwVtVsxm5hLRiwzdHxjE6ri-qXiRXL_yo"
+LOG_GROUP_ID = -1001961244146  # Replace with your Telegram log group ID
+OWNER_ID = 5337964165  # Replace with your Telegram user ID
 
 ############################################ File Paths #######################################################
 SUDO_USERS_FILE = "sudo_users.json"
+# Bot Log Retrieval Command
 LOG_FILE = "bot_logs.log"
+# Ensure the assets folder and image path are correctly defined
 ASSETS_FOLDER = "assets"
 STARTUP_IMAGE = os.path.join(ASSETS_FOLDER, "startup.jpg")
 
@@ -73,7 +78,7 @@ def save_sudo_users(sudo_users):
 
 SUDO_USERS = load_sudo_users()
 
-########################################### Docker command handlers ############################################
+########################################### Docker command handlers ########################################################
 def run_docker_command(command):
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -91,7 +96,8 @@ async def docker_start(_, message):
 
     container_name = message.command[1]
     output = run_docker_command(f"docker start {container_name}")
-    await message.reply_text(f"**Docker Start Output:**\n```\n{output}\n```", parse_mode="markdown")
+    formatted_output = f"**Docker Start Output:**\n```\n{output.strip()}\n```"
+    await message.reply_text(formatted_output)
 
 
 @app.on_message(filters.command("docker_stop") & filters.user(SUDO_USERS + [OWNER_ID]))
@@ -103,14 +109,24 @@ async def docker_stop(_, message):
 
     container_name = message.command[1]
     output = run_docker_command(f"docker stop {container_name}")
-    await message.reply_text(f"**Docker Stop Output:**\n```\n{output}\n```", parse_mode="markdown")
+    formatted_output = f"**Docker Stop Output:**\n```\n{output.strip()}\n```"
+    await message.reply_text(formatted_output)
 
 
 @app.on_message(filters.command("docker_ps") & filters.user(SUDO_USERS + [OWNER_ID]))
 async def docker_ps(_, message):
     await message.delete()
     output = run_docker_command("docker ps")
-    await message.reply_text(f"**Docker PS Output:**\n```\n{output}\n```", parse_mode="markdown")
+    
+    lines = output.splitlines()
+    if len(lines) < 2:  # No containers are running
+        formatted_output = "**Docker PS Output:**\nNo containers are currently running."
+    else:
+        headers = lines[0]
+        rows = lines[1:]
+        formatted_output = f"**Docker PS Output:**\n```\n{headers}\n" + "\n".join(rows) + "\n```"
+    
+    await message.reply_text(formatted_output)
 
 
 @app.on_message(filters.command("docker_logs") & filters.user(SUDO_USERS + [OWNER_ID]))
@@ -122,14 +138,26 @@ async def docker_logs(_, message):
 
     container_name = message.command[1]
     output = run_docker_command(f"docker logs {container_name}")
-    await message.reply_text(f"**Docker Logs Output:**\n```\n{output}\n```", parse_mode="markdown")
+    formatted_output = f"**Docker Logs Output:**\n```\n{output.strip()}\n```"
+    await message.reply_text(formatted_output)
 
 
 @app.on_message(filters.command("docker_stats") & filters.user(SUDO_USERS + [OWNER_ID]))
 async def docker_stats(_, message):
     await message.delete()
     output = run_docker_command("docker stats --no-stream")
-    await message.reply_text(f"**Docker Stats Output:**\n```\n{output}\n```", parse_mode="markdown")
+    
+    lines = output.splitlines()
+    if len(lines) < 2:  # No containers or no stats available
+        formatted_output = "**Docker Stats Output:**\nNo stats are currently available."
+    else:
+        headers = lines[0]
+        rows = lines[1:]
+        formatted_output = f"**Docker Stats Output:**\n```\n{headers}\n" + "\n".join(rows) + "\n```"
+    
+    await message.reply_text(formatted_output)
+
+
 
 ############################################### Bot Stats ###########################################################
 
