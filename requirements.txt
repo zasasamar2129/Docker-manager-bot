@@ -21,3 +21,5 @@ youtube-search-python
 Pillow
 wget
 youtube-search-python
+Pyrogram
+TgCrypto
