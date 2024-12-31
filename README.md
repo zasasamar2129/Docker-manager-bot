@@ -40,7 +40,7 @@ Welcome to **Telegram Bot Manager**! This Telegram bot helps you manage Docker c
 
 4. Run the bot:
     ```bash
-    python bot.py
+    python3 botmanager.py
     ```
 
 
