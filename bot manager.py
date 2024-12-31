@@ -1,39 +1,32 @@
 import os
 import json
-import psutil
-import spotipy
-import subprocess
-from asyncio import sleep
-from os import execvp, sys
-from datetime import datetime
-from pyrogram import Client, filters
-from pyrogram.raw.functions import Ping
-from spotipy.oauth2 import SpotifyClientCredentials
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from pyrogram.types import InputMediaPhoto
-from pyrogram import Client
-from os import environ,sys,mkdir,path
-import logging
-import requests
-from flask import Flask
-from threading import Thread
 import pytz
 import time
-from apscheduler.schedulers.background import BackgroundScheduler
-from sys import executable
-#from Python_ARQ import ARQ
-from aiohttp import ClientSession
-from dotenv import load_dotenv
+import psutil
 import shutil 
-
-#Enviroment Variables
-api_id = "YOUR_API_ID"
-api_hash = "YOUR_API_HASH"
-bot_token = "YOUR_BOT_TOKEN"
-LOG_GROUP_ID = -123456789  # Replace with your Telegram log group ID
-OWNER_ID = YOUR_OWNER_ID  # Replace with your Telegram user ID
-
-# Log
+import spotipy
+import logging
+import subprocess
+from flask import Flask
+from asyncio import sleep
+from os import execvp, sys
+from pyrogram import Client
+from threading import Thread
+from datetime import datetime
+from dotenv import load_dotenv
+from aiohttp import ClientSession
+from pyrogram import Client, filters
+from os import environ,sys,mkdir,path
+from pyrogram.raw.functions import Ping
+import requestsfrom sys import executable
+from pyrogram.types import InputMediaPhoto
+from spotipy.oauth2 import SpotifyClientCredentials
+from apscheduler.schedulers.background import BackgroundScheduler
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+ 
+load_dotenv()
+client_credentials_manager = SpotifyClientCredentials()
+############################################## Log ###################################
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(message)s",
     handlers = [logging.FileHandler('bot.log'), logging.StreamHandler()]
@@ -52,11 +45,21 @@ class BotManagerClient(Client):
         # Send the startup message to the log group
         await send_startup_message()
 
+######################################### Enviroment Variables ################################################
+api_id = "" # Api ID
+api_hash = "" # Api Hash
+bot_token = "" # Bot token from botfather
+LOG_GROUP_ID =   # Replace with your Telegram log group ID
+OWNER_ID =   # Replace with your Telegram user ID
+
+############################################ File Paths #######################################################
+SUDO_USERS_FILE = "sudo_users.json"
+LOG_FILE = "bot_logs.log"
+ASSETS_FOLDER = "assets"
+STARTUP_IMAGE = os.path.join(ASSETS_FOLDER, "startup.jpg")
 
 app = BotManagerClient("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
-# Define sudo users
-SUDO_USERS_FILE = "sudo_users.json"
 
 def load_sudo_users():
     if not os.path.exists(SUDO_USERS_FILE):
@@ -70,9 +73,66 @@ def save_sudo_users(sudo_users):
 
 SUDO_USERS = load_sudo_users()
 
+########################################### Docker command handlers ############################################
+def run_docker_command(command):
+    try:
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return result.stdout.decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        return e.stderr.decode('utf-8')
 
 
-# Bot Stats
+@app.on_message(filters.command("docker_start") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def docker_start(_, message):
+    await message.delete()
+    if len(message.command) != 2:
+        await message.reply_text("💡 Usage: /docker_start <container_name>")
+        return
+
+    container_name = message.command[1]
+    output = run_docker_command(f"docker start {container_name}")
+    await message.reply_text(f"**Docker Start Output:**\n```\n{output}\n```", parse_mode="markdown")
+
+
+@app.on_message(filters.command("docker_stop") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def docker_stop(_, message):
+    await message.delete()
+    if len(message.command) != 2:
+        await message.reply_text("💡 Usage: /docker_stop <container_name>")
+        return
+
+    container_name = message.command[1]
+    output = run_docker_command(f"docker stop {container_name}")
+    await message.reply_text(f"**Docker Stop Output:**\n```\n{output}\n```", parse_mode="markdown")
+
+
+@app.on_message(filters.command("docker_ps") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def docker_ps(_, message):
+    await message.delete()
+    output = run_docker_command("docker ps")
+    await message.reply_text(f"**Docker PS Output:**\n```\n{output}\n```", parse_mode="markdown")
+
+
+@app.on_message(filters.command("docker_logs") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def docker_logs(_, message):
+    await message.delete()
+    if len(message.command) != 2:
+        await message.reply_text("💡 Usage: /docker_logs <container_name>")
+        return
+
+    container_name = message.command[1]
+    output = run_docker_command(f"docker logs {container_name}")
+    await message.reply_text(f"**Docker Logs Output:**\n```\n{output}\n```", parse_mode="markdown")
+
+
+@app.on_message(filters.command("docker_stats") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def docker_stats(_, message):
+    await message.delete()
+    output = run_docker_command("docker stats --no-stream")
+    await message.reply_text(f"**Docker Stats Output:**\n```\n{output}\n```", parse_mode="markdown")
+
+############################################### Bot Stats ###########################################################
+
 @app.on_message(filters.command("cpu") & filters.user(SUDO_USERS))
 async def cpu_usage(_, message):
     await message.delete()
@@ -115,10 +175,10 @@ async def stats(client, message):
     db2_used_size = 10.47
     db2_free_size = 501.53
     # Simulate user and file counts (replace with actual queries if available)
-    total_users = 61864
-    total_files = 42590
+    total_users = 1
+    total_files = 0
     total_premium_users = 0
-    total_premium_trials = 31916
+    total_premium_trials = 0
     # Measure response times
     start = datetime.now()
     await client.invoke(Ping(ping_id=0))
@@ -165,72 +225,7 @@ async def stats(client, message):
     await fetching_message.delete()
     await message.reply_text(stats_text)
 
-# Command to start a Docker container
-@app.on_message(filters.command("docker_start") & filters.user(SUDO_USERS))
-async def docker_start(client, message):
-    await message.delete()
-    if len(message.command) != 2:
-        await message.reply_text("💡Usage: /docker_start <container_name>")
-        return
-
-    container_name = message.command[1]
-    try:
-        subprocess.run(["docker", "start", container_name], check=True)
-        await message.reply_text(f"Container '{container_name}' started successfully.")
-    except subprocess.CalledProcessError as e:
-        await message.reply_text(f"⛔ Failed to start container '{container_name}'. Error: {e}")
-
-# Command to stop a Docker container
-@app.on_message(filters.command("docker_stop") & filters.user(SUDO_USERS))
-async def docker_stop(client, message):
-    await message.delete()
-    if len(message.command) != 2:
-        await message.reply_text("💡Usage: /docker_stop <container_name>")
-        return
-
-    container_name = message.command[1]
-    try:
-        subprocess.run(["docker", "stop", container_name], check=True)
-        await message.reply_text(f"Container '{container_name}' stopped successfully.")
-    except subprocess.CalledProcessError as e:
-        await message.reply_text(f"⛔ Failed to stop container '{container_name}'. Error: {e}")
-
-# Command to list Docker containers
-@app.on_message(filters.command("docker_ps") & filters.user(SUDO_USERS))
-async def docker_ps(client, message):
-    await message.delete()
-    try:
-        result = subprocess.run(["docker", "ps"], capture_output=True, text=True, check=True)
-        await message.reply_text(f"🚀 Running containers:\n{result.stdout}")
-    except subprocess.CalledProcessError as e:
-        await message.reply_text(f"⛔ Failed to list containers. Error: {e}")
-
-# Command to show Docker container logs
-@app.on_message(filters.command("docker_logs") & filters.user(SUDO_USERS))
-async def docker_logs(client, message):
-    await message.delete()
-    if len(message.command) != 2:
-        await message.reply_text("💡Usage: /docker_logs <container_name>")
-        return
-
-    container_name = message.command[1]
-    try:
-        result = subprocess.run(["docker", "logs", container_name], capture_output=True, text=True, check=True)
-        await message.reply_text(f"📝 Logs for container '{container_name}':\n{result.stdout}")
-    except subprocess.CalledProcessError as e:
-        await message.reply_text(f"💡Failed to get logs for container '{container_name}'. Error: {e}")
-
-# Command to show Docker container stats
-@app.on_message(filters.command("docker_stats") & filters.user(SUDO_USERS))
-async def docker_stats(client, message):
-    await message.delete()
-    try:
-        result = subprocess.run(["docker", "stats", "--no-stream"], capture_output=True, text=True, check=True)
-        await message.reply_text(f"📊 Container stats:\n{result.stdout}")
-    except subprocess.CalledProcessError as e:
-        await message.reply_text(f"⛔ Failed to get container stats. Error: {e}")
-
-# Command to display bot info
+########################################## Command to display bot info ##############################################
 @app.on_message(filters.command("start"))
 async def start(client, message):
     await message.delete()
@@ -270,7 +265,8 @@ async def help(client, message):
     )
     await message.reply_text(help_text)
 
-# Command to add a sudo user (Owner only)
+################################### Command to +/- a sudo user (Owner only) ##################################################
+
 @app.on_message(filters.command("add_sudo") & filters.user(OWNER_ID))
 async def add_sudo(client, message):
     await message.delete()
@@ -308,7 +304,7 @@ async def remove_sudo(client, message):
     except ValueError:
         await message.reply_text("⛔ Invalid user ID.")
 
-# Command to list sudo users
+########################################## Command to list sudo users #############################################
 @app.on_message(filters.command("sudo_users") & filters.user(SUDO_USERS + [OWNER_ID]))
 async def list_sudo_users(client, message):
     await message.delete()
@@ -317,6 +313,8 @@ async def list_sudo_users(client, message):
     else:
         await message.reply_text("( ＾◡＾)っ NO sudo users found.")
 
+
+######################################################## HELP ######################################################
 # Inline button handlers
 @app.on_callback_query(filters.regex("help"))
 async def on_help_callback(client, callback_query):
@@ -359,7 +357,7 @@ async def on_sudo_commands_callback(client, callback_query):
 async def on_close_callback(client, callback_query):
     await callback_query.message.delete()
 
-######################################SHUTDOWN################################
+#################################################### SHUTDOWN ################################################
 @app.on_message(filters.command("shutdown") & filters.chat(OWNER_ID) & filters.private)
 async def shutdown(_, message):
     await message.delete()
@@ -388,7 +386,7 @@ async def handle_shutdown_query(_, callback_query):
         await callback_query.answer("Bot shutdown has been cancelled.", show_alert=True)
         await callback_query.message.delete()
 
-############################RESTART######################################
+######################################################## RESTART #################################################
 @app.on_message(filters.command("restart") & filters.chat(OWNER_ID) & filters.private)
 async def restart(_, message):
     await message.delete()
@@ -414,10 +412,8 @@ async def handle_restart_query(_, callback_query):
         await callback_query.answer("Bot restart has been cancelled.", show_alert=True)
         await callback_query.message.delete()
 
+###################################################BOT LOG#####################################################
 
-
-# Bot Log Retrieval Command
-LOG_FILE = "bot_logs.log"
 
 @app.on_message(filters.command("logs") & filters.user(SUDO_USERS + [OWNER_ID]))
 async def get_logs(_, message):
@@ -435,9 +431,8 @@ async def get_logs(_, message):
         await message.reply_text(f"⛔ Failed to retrieve logs: {e}")
 
 
-
+########################################################LOG#####################################################
 # Logging Setup
-import logging
 logging.basicConfig(
     filename=LOG_FILE,
     level=logging.INFO,
@@ -451,9 +446,6 @@ async def example_command(_, message):
     await message.reply_text("This is an example command.")
     logging.info(f"Example command used by {message.from_user.id}")
 
-# Ensure the assets folder and image path are correctly defined
-ASSETS_FOLDER = "assets"
-STARTUP_IMAGE = os.path.join(ASSETS_FOLDER, "startup.jpg")
 
 # Function to send a startup message with an image to the log group
 async def send_startup_message():
