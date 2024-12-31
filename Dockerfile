@@ -10,7 +10,7 @@ WORKDIR /botmanager
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt /botmanager/
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 # Copy the entire project into the container
 COPY . /botmanager
