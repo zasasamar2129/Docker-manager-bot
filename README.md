@@ -1,6 +1,6 @@
-# 🤖 Telegram Bot Manager
+# 🤖 Docker Manager Bot 
 
-Welcome to **Telegram Bot Manager**! This Telegram bot helps you manage Docker containers and provides various system stats. It also includes features for managing sudo users and more.
+Welcome to **Docker Manager Bot **! This Telegram bot helps you manage Docker containers and provides various system stats. It also includes features for managing sudo users and more.
 
 ## 🌟 Features
 
@@ -27,7 +27,7 @@ Welcome to **Telegram Bot Manager**! This Telegram bot helps you manage Docker c
 
 2. Install the required Python packages:
     ```bash
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
     ```
 
 3. Set up your environment variables:
@@ -42,18 +42,6 @@ Welcome to **Telegram Bot Manager**! This Telegram bot helps you manage Docker c
     ```bash
     python3 botmanager.py
     ```
-
-
----
-
-### 🚀 Docker Deployment
-
-```bash
-docker build -t botmanager .
-docker run botmanager
-```
-
----
 
 
 ## 📜 Commands
