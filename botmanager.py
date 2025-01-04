@@ -113,21 +113,6 @@ async def docker_stop(_, message):
     await message.reply_text(formatted_output)
 
 
-@app.on_message(filters.command("docker_ps") & filters.user(SUDO_USERS + [OWNER_ID]))
-async def docker_ps(_, message):
-    await message.delete()
-    output = run_docker_command("docker ps")
-    
-    lines = output.splitlines()
-    if len(lines) < 2:  # No containers are running
-        formatted_output = "**Docker PS Output:**\nNo containers are currently running."
-    else:
-        headers = lines[0]
-        rows = lines[1:]
-        formatted_output = f"**Docker PS Output:**\n```\n{headers}\n" + "\n".join(rows) + "\n```"
-    
-    await message.reply_text(formatted_output)
-
 
 @app.on_message(filters.command("docker_logs") & filters.user(SUDO_USERS + [OWNER_ID]))
 async def docker_logs(_, message):
@@ -142,21 +127,55 @@ async def docker_logs(_, message):
     await message.reply_text(formatted_output)
 
 
+# /docker_ps command
+@app.on_message(filters.command("docker_ps") & filters.user(SUDO_USERS + [OWNER_ID]))
+async def docker_ps(_, message):
+    await message.delete()
+    output = run_docker_command("docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}'")
+
+    lines = output.splitlines()
+    if not lines:  # No containers are running
+        formatted_output = "**Docker PS Output:**\nNo containers are currently running."
+    else:
+        header = f"{'ID':<33}{'Name':<30}{'Image':<25}{'Status':<35}"
+        rows = [
+            f"{line.split('\t')[0]:<17}{line.split('\t')[1]:<25}{line.split('\t')[2]:<20}{line.split('\t')[3]:<20}"
+            for line in lines
+        ]
+        formatted_output = f"**Docker PS Output:**\n```\n{header}\n{'-' * 73}\n" + "\n".join(rows) + "\n```"
+
+    await message.reply_text(formatted_output)
+
+# /docker_stats command
 @app.on_message(filters.command("docker_stats") & filters.user(SUDO_USERS + [OWNER_ID]))
 async def docker_stats(_, message):
     await message.delete()
-    output = run_docker_command("docker stats --no-stream")
-    
+    output = run_docker_command("docker stats --no-stream --format '{{.ID}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}'")
+
     lines = output.splitlines()
-    if len(lines) < 2:  # No containers or no stats available
+    if not lines:  # No containers or no stats available
         formatted_output = "**Docker Stats Output:**\nNo stats are currently available."
     else:
-        headers = lines[0]
-        rows = lines[1:]
-        formatted_output = f"**Docker Stats Output:**\n```\n{headers}\n" + "\n".join(rows) + "\n```"
-    
-    await message.reply_text(formatted_output)
+        rows = []
+        for line in lines:
+            fields = line.split('\t')
+            container_id = fields[0] if len(fields) > 0 else "N/A"
+            name = fields[1] if len(fields) > 1 else "N/A"
+            cpu = fields[2] if len(fields) > 2 else "N/A"
+            mem = fields[3] if len(fields) > 3 else "N/A"
+            net = fields[4] if len(fields) > 4 else "N/A"
+            rows.append(
+                f"ID: {container_id}\n\n"
+                f"Name: {name}\n\n"
+                f"CPU %: {cpu}\n\n"
+                f"Memory Usage: {mem}\n\n"
+                f"Net I/O: {net}\n\n"
+                f"{'-' * 40}"
+            )
 
+        formatted_output = f"**Docker Stats Output:**\n```\n" + "\n".join(rows) + "\n```"
+
+    await message.reply_text(formatted_output)
 
 
 ############################################### Bot Stats ###########################################################
